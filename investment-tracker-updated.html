@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Tracker - Real-time Sync</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafaf8;
+            color: #0b0b0b;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            border-left: 4px solid #ccc;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+
+        .setup-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .setup-box h2 {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .setup-box input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0dc;
+        }
+
+        .card-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .positive {
+            color: #0ca30c;
+        }
+
+        .negative {
+            color: #d03b3b;
+        }
+
+        .form-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0dc;
+            margin-bottom: 30px;
+        }
+
+        .form-box h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #e0e0dc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            background: #2a78d6;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #1f5aa8;
+        }
+
+        .btn-cancel {
+            background: white;
+            color: #666;
+            border: 1px solid #e0e0dc;
+        }
+
+        .btn-cancel:hover {
+            background: #f9f9f7;
+        }
+
+        .loading-text {
+            font-size: 12px;
+            color: #2a78d6;
+            display: none;
+        }
+
+        .investment-list {
+            background: white;
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid #e0e0dc;
+            overflow: hidden;
+            overflow-x: auto;
+        }
+
+        .investment-item {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0dc;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .investment-item:last-child {
+            border-bottom: none;
+        }
+
+        .investment-info {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .investment-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .investment-details {
+            font-size: 12px;
+            color: #888;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .detail-row {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: #0b0b0b;
+        }
+
+        .investment-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            background: white;
+            border: 1px solid #e0e0dc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: #f9f9f7;
+        }
+
+        .btn-delete {
+            color: #d03b3b;
+        }
+
+        .empty {
+            text-align: center;
+            color: #888;
+            padding: 30px;
+        }
+
+        h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .pending-amount {
+            padding: 8px 12px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            color: #856404;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .investment-item {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .investment-actions {
+                width: 100%;
+            }
+
+            .investment-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Investment Tracker</h1>
+        
+        <div class="status" id="status">
+            ⚠️ Not connected to Google Sheets
+        </div>
+
+        <!-- Setup Section -->
+        <div class="setup-box" id="setupBox">
+            <h2>🔗 Connect Your Google Sheet</h2>
+            <p style="font-size: 12px; margin-bottom: 10px; color: #666;">
+                Paste your Google Apps Script URL here:
+            </p>
+            <input 
+                type="text" 
+                id="scriptUrl" 
+                placeholder="https://script.google.com/macros/d/..." 
+            >
+            <button class="btn-add" onclick="saveScriptUrl()">Connect Sheet</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary">
+            <div class="card">
+                <div class="card-label">Total Amount</div>
+                <div class="card-value" id="totalAmount">$0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Amount Received</div>
+                <div class="card-value" id="totalReceived">$0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Amount Pending</div>
+                <div class="card-value" id="totalPending">$0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Percentage Received</div>
+                <div class="card-value" id="percentReceived">0%</div>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="form-box">
+            <h2 id="formTitle">Add New Entry</h2>
+            <div class="form-grid">
+                <input type="text" id="entryName" placeholder="Name">
+                <input type="text" id="entryProduct" placeholder="Product">
+                <input type="number" id="totalAmount" placeholder="Total Amount" step="0.01">
+                <input type="number" id="amountReceived" placeholder="Amount Received" step="0.01">
+            </div>
+            <div class="button-group">
+                <button class="btn-add" id="addBtn" onclick="addEntry()">Add</button>
+                <button class="btn-cancel" id="cancelBtn" onclick="cancelEdit()" style="display: none;">Cancel</button>
+                <span class="loading-text" id="loadingText">Saving...</span>
+            </div>
+        </div>
+
+        <!-- Entries List -->
+        <h2>Your Entries <span id="entryCount">(0)</span></h2>
+        <div class="investment-list" id="entryList"></div>
+    </div>
+
+    <script>
+        let entries = [];
+        let scriptUrl = null;
+        let editingId = null;
+
+        // Load config
+        function loadConfig() {
+            scriptUrl = localStorage.getItem('scriptUrl');
+            updateStatus();
+        }
+
+        // Save script URL
+        function saveScriptUrl() {
+            const url = document.getElementById('scriptUrl').value.trim();
+            if (!url) {
+                alert('Please paste a valid URL');
+                return;
+            }
+            localStorage.setItem('scriptUrl', url);
+            scriptUrl = url;
+            document.getElementById('scriptUrl').value = '';
+            document.getElementById('setupBox').style.display = 'none';
+            updateStatus();
+        }
+
+        // Update status display
+        function updateStatus() {
+            const statusDiv = document.getElementById('status');
+            if (scriptUrl) {
+                statusDiv.textContent = '✅ Connected to Google Sheets';
+                statusDiv.classList.add('connected');
+                document.getElementById('setupBox').style.display = 'none';
+            } else {
+                statusDiv.textContent = '⚠️ Not connected to Google Sheets';
+                statusDiv.classList.remove('connected');
+                document.getElementById('setupBox').style.display = 'block';
+            }
+        }
+
+        // Send data to Google Sheets
+        async function sendToGoogleSheets(entry) {
+            if (!scriptUrl) {
+                alert('Please connect your Google Sheet first');
+                return false;
+            }
+
+            try {
+                const response = await fetch(scriptUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: entry.name,
+                        product: entry.product,
+                        totalAmount: entry.totalAmount,
+                        amountReceived: entry.amountReceived
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    return true;
+                } else {
+                    alert('Error: ' + result.error);
+                    return false;
+                }
+            } catch (error) {
+                alert('Failed to save to Google Sheets. Check your URL.');
+                console.error(error);
+                return false;
+            }
+        }
+
+        // Add entry
+        async function addEntry() {
+            const name = document.getElementById('entryName').value.trim();
+            const product = document.getElementById('entryProduct').value.trim();
+            const totalAmount = parseFloat(document.getElementById('totalAmount').value);
+            const amountReceived = parseFloat(document.getElementById('amountReceived').value);
+
+            if (!name || !product || isNaN(totalAmount) || isNaN(amountReceived)) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            if (amountReceived > totalAmount) {
+                alert('Amount Received cannot be greater than Total Amount');
+                return;
+            }
+
+            const btn = document.getElementById('addBtn');
+            const loading = document.getElementById('loadingText');
+
+            btn.disabled = true;
+            loading.style.display = 'inline';
+
+            const entry = {
+                id: editingId || Date.now(),
+                name,
+                product,
+                totalAmount,
+                amountReceived,
+                timestamp: new Date().toISOString()
+            };
+
+            // Send to Google Sheets
+            const success = await sendToGoogleSheets(entry);
+
+            if (success) {
+                // Update local storage
+                if (editingId) {
+                    entries = entries.map(e => e.id === editingId ? entry : e);
+                    editingId = null;
+                } else {
+                    entries.push(entry);
+                }
+
+                localStorage.setItem('entries', JSON.stringify(entries));
+                
+                // Clear form
+                document.getElementById('entryName').value = '';
+                document.getElementById('entryProduct').value = '';
+                document.getElementById('totalAmount').value = '';
+                document.getElementById('amountReceived').value = '';
+                document.getElementById('formTitle').textContent = 'Add New Entry';
+                document.getElementById('cancelBtn').style.display = 'none';
+                document.getElementById('addBtn').textContent = 'Add';
+
+                render();
+            }
+
+            btn.disabled = false;
+            loading.style.display = 'none';
+        }
+
+        // Edit entry
+        function editEntry(id) {
+            const entry = entries.find(e => e.id === id);
+            if (entry) {
+                document.getElementById('entryName').value = entry.name;
+                document.getElementById('entryProduct').value = entry.product;
+                document.getElementById('totalAmount').value = entry.totalAmount;
+                document.getElementById('amountReceived').value = entry.amountReceived;
+                document.getElementById('formTitle').textContent = 'Edit Entry (local only)';
+                document.getElementById('addBtn').textContent = 'Update';
+                document.getElementById('cancelBtn').style.display = 'inline-block';
+                editingId = id;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // Delete entry
+        function deleteEntry(id) {
+            if (confirm('Delete this entry?')) {
+                entries = entries.filter(e => e.id !== id);
+                localStorage.setItem('entries', JSON.stringify(entries));
+                render();
+            }
+        }
+
+        // Cancel edit
+        function cancelEdit() {
+            document.getElementById('entryName').value = '';
+            document.getElementById('entryProduct').value = '';
+            document.getElementById('totalAmount').value = '';
+            document.getElementById('amountReceived').value = '';
+            document.getElementById('formTitle').textContent = 'Add New Entry';
+            document.getElementById('addBtn').textContent = 'Add';
+            document.getElementById('cancelBtn').style.display = 'none';
+            editingId = null;
+        }
+
+        // Render everything
+        function render() {
+            // Calculate totals
+            const totalAmount = entries.reduce((sum, e) => sum + e.totalAmount, 0);
+            const totalReceived = entries.reduce((sum, e) => sum + e.amountReceived, 0);
+            const totalPending = totalAmount - totalReceived;
+            const percentReceived = totalAmount > 0 ? (totalReceived / totalAmount) * 100 : 0;
+
+            // Update cards
+            document.getElementById('totalAmount').textContent = '$' + Math.round(totalAmount).toLocaleString();
+            document.getElementById('totalReceived').textContent = '$' + Math.round(totalReceived).toLocaleString();
+            
+            const pendingEl = document.getElementById('totalPending');
+            pendingEl.textContent = '$' + Math.round(totalPending).toLocaleString();
+            pendingEl.className = 'card-value ' + (totalPending === 0 ? 'positive' : 'negative');
+
+            const percentEl = document.getElementById('percentReceived');
+            percentEl.textContent = percentReceived.toFixed(1) + '%';
+            percentEl.className = 'card-value ' + (percentReceived === 100 ? 'positive' : 'negative');
+
+            // Update count
+            document.getElementById('entryCount').textContent = `(${entries.length})`;
+
+            // Render list
+            const list = document.getElementById('entryList');
+            if (entries.length === 0) {
+                list.innerHTML = '<div class="empty">No entries yet. Add one above! 👆</div>';
+                return;
+            }
+
+            list.innerHTML = entries.map(entry => {
+                const pending = entry.totalAmount - entry.amountReceived;
+                const percent = (entry.amountReceived / entry.totalAmount) * 100;
+                const date = new Date(entry.timestamp).toLocaleDateString();
+
+                return `
+                    <div class="investment-item">
+                        <div class="investment-info">
+                            <div class="investment-name">${entry.name}</div>
+                            <div class="investment-details">
+                                <div class="detail-row">
+                                    <div class="detail-label">Product</div>
+                                    <div class="detail-value">${entry.product}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Total Amount</div>
+                                    <div class="detail-value">$${Math.round(entry.totalAmount).toLocaleString()}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Amount Received</div>
+                                    <div class="detail-value">$${Math.round(entry.amountReceived).toLocaleString()}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Amount Pending</div>
+                                    <div class="detail-value ${pending === 0 ? 'positive' : 'negative'}">
+                                        ${pending === 0 ? '✓ Complete' : '$' + Math.round(pending).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Progress</div>
+                                    <div class="detail-value">${percent.toFixed(1)}%</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Date Added</div>
+                                    <div class="detail-value">${date}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="investment-actions">
+                            <button class="btn-small" onclick="editEntry(${entry.id})">Edit</button>
+                            <button class="btn-small btn-delete" onclick="deleteEntry(${entry.id})">Delete</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load on startup
+        function init() {
+            loadConfig();
+            const saved = localStorage.getItem('entries');
+            if (saved) {
+                entries = JSON.parse(saved);
+            }
+            render();
+        }
+
+        init();
+    </script>
+</body>
+</html>
