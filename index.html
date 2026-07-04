@@ -316,15 +316,15 @@
         <div class="summary">
             <div class="card">
                 <div class="card-label">Total Amount</div>
-                <div class="card-value" id="totalAmountDisplay">$0</div>
+                <div class="card-value" id="totalAmountDisplay">₹0</div>
             </div>
             <div class="card">
                 <div class="card-label">Amount Received</div>
-                <div class="card-value" id="totalReceivedDisplay">$0</div>
+                <div class="card-value" id="totalReceivedDisplay">₹0</div>
             </div>
             <div class="card">
                 <div class="card-label">Amount Pending</div>
-                <div class="card-value" id="totalPendingDisplay">$0</div>
+                <div class="card-value" id="totalPendingDisplay">₹0</div>
             </div>
             <div class="card">
                 <div class="card-label">Percentage Received</div>
@@ -532,11 +532,11 @@
             const percentReceived = totalAmount > 0 ? (totalReceived / totalAmount) * 100 : 0;
 
             // Update cards
-            document.getElementById('totalAmountDisplay').textContent = '$' + Math.round(totalAmount).toLocaleString();
-            document.getElementById('totalReceivedDisplay').textContent = '$' + Math.round(totalReceived).toLocaleString();
+            document.getElementById('totalAmountDisplay').textContent = '₹' + Math.round(totalAmount).toLocaleString();
+            document.getElementById('totalReceivedDisplay').textContent = '₹' + Math.round(totalReceived).toLocaleString();
             
             const pendingEl = document.getElementById('totalPendingDisplay');
-            pendingEl.textContent = '$' + Math.round(totalPending).toLocaleString();
+            pendingEl.textContent = '₹' + Math.round(totalPending).toLocaleString();
             pendingEl.className = 'card-value ' + (totalPending === 0 ? 'positive' : 'negative');
 
             const percentEl = document.getElementById('percentReceivedDisplay');
@@ -544,7 +544,7 @@
             percentEl.className = 'card-value ' + (percentReceived === 100 ? 'positive' : 'negative');
 
             // Update count
-            document.getElementById('entryCount').textContent = `(${entries.length})`;
+            document.getElementById('entryCount').textContent = `(₹{entries.length})`;
 
             // Render list
             const list = document.getElementById('entryList');
@@ -561,39 +561,39 @@
                 return `
                     <div class="investment-item">
                         <div class="investment-info">
-                            <div class="investment-name">${entry.name}</div>
+                            <div class="investment-name">₹{entry.name}</div>
                             <div class="investment-details">
                                 <div class="detail-row">
                                     <div class="detail-label">Product</div>
-                                    <div class="detail-value">${entry.product}</div>
+                                    <div class="detail-value">₹{entry.product}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Total Amount</div>
-                                    <div class="detail-value">$${Math.round(entry.totalAmount).toLocaleString()}</div>
+                                    <div class="detail-value">₹₹{Math.round(entry.totalAmount).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Amount Received</div>
-                                    <div class="detail-value">$${Math.round(entry.amountReceived).toLocaleString()}</div>
+                                    <div class="detail-value">₹₹{Math.round(entry.amountReceived).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Amount Pending</div>
-                                    <div class="detail-value ${pending === 0 ? 'positive' : 'negative'}">
-                                        ${pending === 0 ? '✓ Complete' : '$' + Math.round(pending).toLocaleString()}
+                                    <div class="detail-value ₹{pending === 0 ? 'positive' : 'negative'}">
+                                        ₹{pending === 0 ? '✓ Complete' : '₹' + Math.round(pending).toLocaleString()}
                                     </div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Progress</div>
-                                    <div class="detail-value">${percent.toFixed(1)}%</div>
+                                    <div class="detail-value">₹{percent.toFixed(1)}%</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Date Added</div>
-                                    <div class="detail-value">${date}</div>
+                                    <div class="detail-value">₹{date}</div>
                                 </div>
                             </div>
                         </div>
                         <div class="investment-actions">
-                            <button class="btn-small" onclick="editEntry(${entry.id})">Edit</button>
-                            <button class="btn-small btn-delete" onclick="deleteEntry(${entry.id})">Delete</button>
+                            <button class="btn-small" onclick="editEntry(₹{entry.id})">Edit</button>
+                            <button class="btn-small btn-delete" onclick="deleteEntry(₹{entry.id})">Delete</button>
                         </div>
                     </div>
                 `;
