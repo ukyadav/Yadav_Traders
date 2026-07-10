@@ -319,6 +319,10 @@
                 <div class="card-value" id="totalAmountDisplay">₹0</div>
             </div>
             <div class="card">
+                <div class="card-label">Total Advance</div>
+                <div class="card-value" id="totalAdvanceDisplay">₹0</div>
+            </div>
+            <div class="card">
                 <div class="card-label">Amount Received</div>
                 <div class="card-value" id="totalReceivedDisplay">₹0</div>
             </div>
@@ -339,6 +343,7 @@
                 <input type="text" id="entryName" placeholder="Name">
                 <input type="text" id="entryProduct" placeholder="Product">
                 <input type="number" id="entryTotalAmount" placeholder="Total Amount" step="0.01">
+                <input type="number" id="entryAdvanceAmount" placeholder="Advance Amount" step="0.01">
                 <input type="number" id="entryAmountReceived" placeholder="Amount Received" step="0.01">
             </div>
             <div class="button-group">
@@ -406,6 +411,7 @@
                         name: entry.name,
                         product: entry.product,
                         totalAmount: entry.totalAmount,
+                        advanceAmount: entry.advanceAmount,
                         amountReceived: entry.amountReceived
                     })
                 });
@@ -429,15 +435,21 @@
             const name = document.getElementById('entryName').value.trim();
             const product = document.getElementById('entryProduct').value.trim();
             const totalAmount = parseFloat(document.getElementById('entryTotalAmount').value);
+            const advanceAmount = parseFloat(document.getElementById('entryAdvanceAmount').value) || 0;
             const amountReceived = parseFloat(document.getElementById('entryAmountReceived').value);
 
             if (!name || !product || isNaN(totalAmount) || isNaN(amountReceived)) {
-                alert('Please fill in all fields');
+                alert('Please fill in all required fields');
                 return;
             }
 
             if (amountReceived > totalAmount) {
                 alert('Amount Received cannot be greater than Total Amount');
+                return;
+            }
+
+            if (advanceAmount > totalAmount) {
+                alert('Advance Amount cannot be greater than Total Amount');
                 return;
             }
 
@@ -452,6 +464,7 @@
                 name,
                 product,
                 totalAmount,
+                advanceAmount,
                 amountReceived,
                 timestamp: new Date().toISOString()
             };
@@ -474,6 +487,7 @@
                 document.getElementById('entryName').value = '';
                 document.getElementById('entryProduct').value = '';
                 document.getElementById('entryTotalAmount').value = '';
+                document.getElementById('entryAdvanceAmount').value = '';
                 document.getElementById('entryAmountReceived').value = '';
                 document.getElementById('formTitle').textContent = 'Add New Entry';
                 document.getElementById('cancelBtn').style.display = 'none';
@@ -493,6 +507,7 @@
                 document.getElementById('entryName').value = entry.name;
                 document.getElementById('entryProduct').value = entry.product;
                 document.getElementById('entryTotalAmount').value = entry.totalAmount;
+                document.getElementById('entryAdvanceAmount').value = entry.advanceAmount || 0;
                 document.getElementById('entryAmountReceived').value = entry.amountReceived;
                 document.getElementById('formTitle').textContent = 'Edit Entry (local only)';
                 document.getElementById('addBtn').textContent = 'Update';
@@ -516,6 +531,7 @@
             document.getElementById('entryName').value = '';
             document.getElementById('entryProduct').value = '';
             document.getElementById('entryTotalAmount').value = '';
+            document.getElementById('entryAdvanceAmount').value = '';
             document.getElementById('entryAmountReceived').value = '';
             document.getElementById('formTitle').textContent = 'Add New Entry';
             document.getElementById('addBtn').textContent = 'Add';
@@ -527,12 +543,14 @@
         function render() {
             // Calculate totals
             const totalAmount = entries.reduce((sum, e) => sum + e.totalAmount, 0);
+            const totalAdvance = entries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0);
             const totalReceived = entries.reduce((sum, e) => sum + e.amountReceived, 0);
             const totalPending = totalAmount - totalReceived;
             const percentReceived = totalAmount > 0 ? (totalReceived / totalAmount) * 100 : 0;
 
             // Update cards
             document.getElementById('totalAmountDisplay').textContent = '₹ ' + Math.round(totalAmount).toLocaleString();
+            document.getElementById('totalAdvanceDisplay').textContent = '₹ ' + Math.round(totalAdvance).toLocaleString();
             document.getElementById('totalReceivedDisplay').textContent = '₹ ' + Math.round(totalReceived).toLocaleString();
             
             const pendingEl = document.getElementById('totalPendingDisplay');
@@ -557,6 +575,7 @@
                 const pending = entry.totalAmount - entry.amountReceived;
                 const percent = (entry.amountReceived / entry.totalAmount) * 100;
                 const date = new Date(entry.timestamp).toLocaleDateString();
+                const advanceAmount = entry.advanceAmount || 0;
 
                 return `
                     <div class="investment-item">
@@ -570,6 +589,10 @@
                                 <div class="detail-row">
                                     <div class="detail-label">Total Amount</div>
                                     <div class="detail-value">₹ ${Math.round(entry.totalAmount).toLocaleString()}</div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Advance Amount</div>
+                                    <div class="detail-value">₹ ${Math.round(advanceAmount).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Amount Received</div>
