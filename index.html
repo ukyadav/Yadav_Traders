@@ -599,7 +599,7 @@
                 totalAdvance += customer.totalAdvanceAmount;
             });
 
-            const totalPending = totalSales - totalReceived;
+            const totalPending = totalSales - totalReceived - totalAdvance;
 
             // Update cards
             document.getElementById('totalSalesDisplay').textContent = '₹ ' + Math.round(totalSales).toLocaleString();
