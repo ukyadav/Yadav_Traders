@@ -373,7 +373,8 @@
             • Same customer name = Updated record (not new)<br>
             • Sale Amount: Total price of item sold<br>
             • Amount Received: Actual payment<br>
-            • Advance Amount: Pre-payment or extra payment
+            • Advance Amount: Pre-payment or extra payment<br>
+            • Pending shown per customer already accounts for advance paid
         </div>
 
         <!-- Form -->
@@ -607,7 +608,7 @@
             
             const pendingEl = document.getElementById('totalPendingDisplay');
             pendingEl.textContent = '₹ ' + Math.round(totalPending).toLocaleString();
-            pendingEl.className = 'card-value ' + (totalPending === 0 ? 'positive' : 'negative');
+            pendingEl.className = 'card-value ' + (totalPending <= 0 ? 'positive' : 'negative');
 
             const advanceEl = document.getElementById('totalAdvanceDisplay');
             advanceEl.textContent = '₹ ' + Math.round(totalAdvance).toLocaleString();
@@ -624,8 +625,9 @@
             }
 
             list.innerHTML = Object.entries(customers).map(([name, customer]) => {
-                const pending = customer.totalSalesAmount - customer.totalReceivedAmount;
-                const percent = (customer.totalReceivedAmount / customer.totalSalesAmount) * 100;
+                // Pending now factors in advance payments already made
+                const pending = customer.totalSalesAmount - customer.totalReceivedAmount - customer.totalAdvanceAmount;
+                const percent = ((customer.totalReceivedAmount + customer.totalAdvanceAmount) / customer.totalSalesAmount) * 100;
 
                 return `
                     <div class="investment-item">
@@ -645,8 +647,8 @@
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Pending</div>
-                                    <div class="detail-value ${pending === 0 ? 'positive' : 'negative'}">
-                                        ${pending === 0 ? '✓ Paid' : '₹ ' + Math.round(pending).toLocaleString()}
+                                    <div class="detail-value ${pending <= 0 ? 'positive' : 'negative'}">
+                                        ${pending <= 0 ? '✓ Paid' : '₹ ' + Math.round(pending).toLocaleString()}
                                     </div>
                                 </div>
                                 <div class="detail-row">
