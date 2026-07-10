@@ -199,6 +199,10 @@
             font-size: 15px;
             font-weight: 600;
             margin-bottom: 8px;
+            padding: 6px 10px;
+            background: #e7f3ff;
+            border-radius: 4px;
+            display: inline-block;
         }
 
         .investment-details {
@@ -208,6 +212,7 @@
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             margin-bottom: 10px;
+            margin-top: 10px;
         }
 
         .detail-row {
@@ -225,6 +230,24 @@
         .detail-value {
             font-size: 14px;
             color: #0b0b0b;
+        }
+
+        .transactions {
+            font-size: 11px;
+            color: #999;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f0f0f0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            padding: 4px 0;
+            background: #f9f9f9;
+            padding: 4px;
+            margin-bottom: 4px;
+            border-radius: 2px;
         }
 
         .investment-actions {
@@ -270,6 +293,16 @@
             margin-bottom: 15px;
             font-size: 12px;
             line-height: 1.5;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 5px;
         }
 
         @media (max-width: 768px) {
@@ -337,16 +370,17 @@
         <!-- Info Box -->
         <div class="info-box">
             <strong>📌 How to use:</strong><br>
-            • <strong>Sale Amount:</strong> Total price of item sold<br>
-            • <strong>Amount Received:</strong> Actual payment received<br>
-            • <strong>Advance Amount:</strong> Pre-payment for next order or extra payment
+            • Same customer name = Updated record (not new)<br>
+            • Sale Amount: Total price of item sold<br>
+            • Amount Received: Actual payment<br>
+            • Advance Amount: Pre-payment or extra payment
         </div>
 
         <!-- Form -->
         <div class="form-box">
             <h2 id="formTitle">Add New Sale Entry</h2>
             <div class="form-grid">
-                <input type="text" id="entryName" placeholder="Name">
+                <input type="text" id="entryName" placeholder="Customer Name" autofocus>
                 <input type="text" id="entryProduct" placeholder="Product">
                 <input type="number" id="entrySaleAmount" placeholder="Sale Amount" step="0.01">
                 <input type="number" id="entryAmountReceived" placeholder="Amount Received" step="0.01">
@@ -360,18 +394,18 @@
         </div>
 
         <!-- Entries List -->
-        <h2>Sales Records <span id="entryCount">(0)</span></h2>
+        <h2>Customer Records <span id="entryCount">(0)</span></h2>
         <div class="investment-list" id="entryList"></div>
     </div>
 
     <script>
-        let entries = [];
+        let customers = {}; // Changed to object with customer name as key
         let scriptUrl = null;
-        let editingId = null;
+        let editingName = null;
 
         // Load config
         function loadConfig() {
-            scriptUrl = "https://script.google.com/macros/s/AKfycbwq4b7jzNMsecUF4iWyxFK1rTj_EHsoI1BhaXr-DX3CI3mMhjXJonRVhhiYY3Z75HKq8A/exec";
+            scriptUrl = localStorage.getItem('scriptUrl');
             updateStatus();
         }
 
@@ -404,7 +438,7 @@
         }
 
         // Send data to Google Sheets
-        async function sendToGoogleSheets(entry) {
+        async function sendToGoogleSheets(transaction) {
             if (!scriptUrl) {
                 alert('Please connect your Google Sheet first');
                 return false;
@@ -414,11 +448,11 @@
                 const response = await fetch(scriptUrl, {
                     method: 'POST',
                     body: JSON.stringify({
-                        name: entry.name,
-                        product: entry.product,
-                        saleAmount: entry.saleAmount,
-                        amountReceived: entry.amountReceived,
-                        advanceAmount: entry.advanceAmount
+                        name: transaction.name,
+                        product: transaction.product,
+                        saleAmount: transaction.saleAmount,
+                        amountReceived: transaction.amountReceived,
+                        advanceAmount: transaction.advanceAmount
                     })
                 });
 
@@ -445,7 +479,7 @@
             const advanceAmount = parseFloat(document.getElementById('entryAdvanceAmount').value) || 0;
 
             if (!name || !product || isNaN(saleAmount) || isNaN(amountReceived)) {
-                alert('Please fill in all required fields (Name, Product, Sale Amount, Amount Received)');
+                alert('Please fill in all required fields');
                 return;
             }
 
@@ -460,9 +494,7 @@
             btn.disabled = true;
             loading.style.display = 'inline';
 
-            const entry = {
-                id: editingId || Date.now(),
-                name,
+            const transaction = {
                 product,
                 saleAmount,
                 amountReceived,
@@ -471,18 +503,30 @@
             };
 
             // Send to Google Sheets
-            const success = await sendToGoogleSheets(entry);
+            const success = await sendToGoogleSheets({
+                name,
+                ...transaction
+            });
 
             if (success) {
-                // Update local storage
-                if (editingId) {
-                    entries = entries.map(e => e.id === editingId ? entry : e);
-                    editingId = null;
+                // Update or create customer record
+                if (customers[name]) {
+                    // Existing customer - add to their transactions
+                    customers[name].totalSalesAmount += saleAmount;
+                    customers[name].totalReceivedAmount += amountReceived;
+                    customers[name].totalAdvanceAmount += advanceAmount;
+                    customers[name].transactions.push(transaction);
                 } else {
-                    entries.push(entry);
+                    // New customer
+                    customers[name] = {
+                        totalSalesAmount: saleAmount,
+                        totalReceivedAmount: amountReceived,
+                        totalAdvanceAmount: advanceAmount,
+                        transactions: [transaction]
+                    };
                 }
 
-                localStorage.setItem('entries', JSON.stringify(entries));
+                localStorage.setItem('customers', JSON.stringify(customers));
                 
                 // Clear form
                 document.getElementById('entryName').value = '';
@@ -493,6 +537,7 @@
                 document.getElementById('formTitle').textContent = 'Add New Sale Entry';
                 document.getElementById('cancelBtn').style.display = 'none';
                 document.getElementById('addBtn').textContent = 'Add';
+                document.getElementById('entryName').focus();
 
                 render();
             }
@@ -501,28 +546,29 @@
             loading.style.display = 'none';
         }
 
-        // Edit entry
-        function editEntry(id) {
-            const entry = entries.find(e => e.id === id);
-            if (entry) {
-                document.getElementById('entryName').value = entry.name;
-                document.getElementById('entryProduct').value = entry.product;
-                document.getElementById('entrySaleAmount').value = entry.saleAmount;
-                document.getElementById('entryAmountReceived').value = entry.amountReceived;
-                document.getElementById('entryAdvanceAmount').value = entry.advanceAmount;
-                document.getElementById('formTitle').textContent = 'Edit Sale Entry (local only)';
-                document.getElementById('addBtn').textContent = 'Update';
+        // Edit customer
+        function editCustomer(name) {
+            const customer = customers[name];
+            if (customer && customer.transactions.length > 0) {
+                const lastTransaction = customer.transactions[customer.transactions.length - 1];
+                document.getElementById('entryName').value = name;
+                document.getElementById('entryProduct').value = lastTransaction.product;
+                document.getElementById('entrySaleAmount').value = lastTransaction.saleAmount;
+                document.getElementById('entryAmountReceived').value = lastTransaction.amountReceived;
+                document.getElementById('entryAdvanceAmount').value = lastTransaction.advanceAmount;
+                document.getElementById('formTitle').textContent = 'Add New Transaction for ' + name;
+                document.getElementById('addBtn').textContent = 'Add Transaction';
                 document.getElementById('cancelBtn').style.display = 'inline-block';
-                editingId = id;
+                editingName = name;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
-        // Delete entry
-        function deleteEntry(id) {
-            if (confirm('Delete this entry?')) {
-                entries = entries.filter(e => e.id !== id);
-                localStorage.setItem('entries', JSON.stringify(entries));
+        // Delete customer
+        function deleteCustomer(name) {
+            if (confirm('Delete all records for ' + name + '?')) {
+                delete customers[name];
+                localStorage.setItem('customers', JSON.stringify(customers));
                 render();
             }
         }
@@ -537,15 +583,22 @@
             document.getElementById('formTitle').textContent = 'Add New Sale Entry';
             document.getElementById('addBtn').textContent = 'Add';
             document.getElementById('cancelBtn').style.display = 'none';
-            editingId = null;
+            editingName = null;
         }
 
         // Render everything
         function render() {
             // Calculate totals
-            const totalSales = entries.reduce((sum, e) => sum + e.saleAmount, 0);
-            const totalReceived = entries.reduce((sum, e) => sum + e.amountReceived, 0);
-            const totalAdvance = entries.reduce((sum, e) => sum + e.advanceAmount, 0);
+            let totalSales = 0;
+            let totalReceived = 0;
+            let totalAdvance = 0;
+
+            Object.values(customers).forEach(customer => {
+                totalSales += customer.totalSalesAmount;
+                totalReceived += customer.totalReceivedAmount;
+                totalAdvance += customer.totalAdvanceAmount;
+            });
+
             const totalPending = totalSales - totalReceived;
 
             // Update cards
@@ -561,62 +614,64 @@
             advanceEl.className = 'card-value positive';
 
             // Update count
-            document.getElementById('entryCount').textContent = `(${entries.length})`;
+            document.getElementById('entryCount').textContent = `(${Object.keys(customers).length})`;
 
             // Render list
             const list = document.getElementById('entryList');
-            if (entries.length === 0) {
-                list.innerHTML = '<div class="empty">No sales records yet. Add one above! 👆</div>';
+            if (Object.keys(customers).length === 0) {
+                list.innerHTML = '<div class="empty">No customer records yet. Add one above! 👆</div>';
                 return;
             }
 
-            list.innerHTML = entries.map(entry => {
-                const pending = entry.saleAmount - entry.amountReceived;
-                const percent = (entry.amountReceived / entry.saleAmount) * 100;
-                const date = new Date(entry.timestamp).toLocaleDateString();
+            list.innerHTML = Object.entries(customers).map(([name, customer]) => {
+                const pending = customer.totalSalesAmount - customer.totalReceivedAmount;
+                const percent = (customer.totalReceivedAmount / customer.totalSalesAmount) * 100;
 
                 return `
                     <div class="investment-item">
                         <div class="investment-info">
-                            <div class="investment-name">${entry.name}</div>
+                            <div class="investment-name">
+                                ${name}
+                                <span class="badge">${customer.transactions.length} sale(s)</span>
+                            </div>
                             <div class="investment-details">
                                 <div class="detail-row">
-                                    <div class="detail-label">Product</div>
-                                    <div class="detail-value">${entry.product}</div>
-                                </div>
-                                <div class="detail-row">
-                                    <div class="detail-label">Sale Amount</div>
-                                    <div class="detail-value">₹ ${Math.round(entry.saleAmount).toLocaleString()}</div>
+                                    <div class="detail-label">Total Sales</div>
+                                    <div class="detail-value">₹ ${Math.round(customer.totalSalesAmount).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Amount Received</div>
-                                    <div class="detail-value">₹ ${Math.round(entry.amountReceived).toLocaleString()}</div>
+                                    <div class="detail-value">₹ ${Math.round(customer.totalReceivedAmount).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Pending</div>
                                     <div class="detail-value ${pending === 0 ? 'positive' : 'negative'}">
-                                        ${pending === 0 ? '✓ Complete' : '₹ ' + Math.round(pending).toLocaleString()}
+                                        ${pending === 0 ? '✓ Paid' : '₹ ' + Math.round(pending).toLocaleString()}
                                     </div>
                                 </div>
                                 <div class="detail-row">
-                                    <div class="detail-label">Advance Amount</div>
+                                    <div class="detail-label">Advance</div>
                                     <div class="detail-value" style="color: #0ca30c; font-weight: 600;">
-                                        ${entry.advanceAmount > 0 ? '₹ ' + Math.round(entry.advanceAmount).toLocaleString() : '₹ 0'}
+                                        ${customer.totalAdvanceAmount > 0 ? '₹ ' + Math.round(customer.totalAdvanceAmount).toLocaleString() : '₹ 0'}
                                     </div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Progress</div>
                                     <div class="detail-value">${percent.toFixed(1)}%</div>
                                 </div>
-                                <div class="detail-row">
-                                    <div class="detail-label">Date</div>
-                                    <div class="detail-value">${date}</div>
-                                </div>
+                            </div>
+                            <div class="transactions">
+                                <strong style="font-size: 12px;">Transaction History:</strong><br>
+                                ${customer.transactions.map((t, i) => `
+                                    <div class="transaction-item">
+                                        ${i + 1}. ${t.product} - Sale: ₹${Math.round(t.saleAmount).toLocaleString()}, Received: ₹${Math.round(t.amountReceived).toLocaleString()} ${t.advanceAmount > 0 ? '(Adv: ₹' + Math.round(t.advanceAmount).toLocaleString() + ')' : ''}
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
                         <div class="investment-actions">
-                            <button class="btn-small" onclick="editEntry(${entry.id})">Edit</button>
-                            <button class="btn-small btn-delete" onclick="deleteEntry(${entry.id})">Delete</button>
+                            <button class="btn-small" onclick="editCustomer('${name}')">Add Sale</button>
+                            <button class="btn-small btn-delete" onclick="deleteCustomer('${name}')">Delete</button>
                         </div>
                     </div>
                 `;
@@ -626,9 +681,9 @@
         // Load on startup
         function init() {
             loadConfig();
-            const saved = localStorage.getItem('entries');
+            const saved = localStorage.getItem('customers');
             if (saved) {
-                entries = JSON.parse(saved);
+                customers = JSON.parse(saved);
             }
             render();
         }
