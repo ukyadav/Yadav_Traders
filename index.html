@@ -18,7 +18,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -205,7 +205,7 @@
             font-size: 12px;
             color: #888;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
             gap: 15px;
             margin-bottom: 10px;
         }
@@ -261,13 +261,15 @@
             margin-bottom: 15px;
         }
 
-        .pending-amount {
-            padding: 8px 12px;
-            background: #fff3cd;
-            border: 1px solid #ffc107;
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #2a78d6;
+            color: #0066cc;
+            padding: 12px;
             border-radius: 4px;
-            color: #856404;
-            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 12px;
+            line-height: 1.5;
         }
 
         @media (max-width: 768px) {
@@ -292,7 +294,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Yadav Traders - Investment Tracker</h1>
+        <h1>📊 Yadav Traders - Sales & Advance Tracker</h1>
         
         <div class="status" id="status">
             ⚠️ Not connected to Google Sheets
@@ -315,12 +317,8 @@
         <!-- Summary Cards -->
         <div class="summary">
             <div class="card">
-                <div class="card-label">Total Amount</div>
-                <div class="card-value" id="totalAmountDisplay">₹0</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Total Advance</div>
-                <div class="card-value" id="totalAdvanceDisplay">₹0</div>
+                <div class="card-label">Total Sales</div>
+                <div class="card-value" id="totalSalesDisplay">₹0</div>
             </div>
             <div class="card">
                 <div class="card-label">Amount Received</div>
@@ -331,20 +329,28 @@
                 <div class="card-value" id="totalPendingDisplay">₹0</div>
             </div>
             <div class="card">
-                <div class="card-label">Percentage Received</div>
-                <div class="card-value" id="percentReceivedDisplay">0%</div>
+                <div class="card-label">Advance Received</div>
+                <div class="card-value" id="totalAdvanceDisplay">₹0</div>
             </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="info-box">
+            <strong>📌 How to use:</strong><br>
+            • <strong>Sale Amount:</strong> Total price of item sold<br>
+            • <strong>Amount Received:</strong> Actual payment received<br>
+            • <strong>Advance Amount:</strong> Pre-payment for next order or extra payment
         </div>
 
         <!-- Form -->
         <div class="form-box">
-            <h2 id="formTitle">Add New Entry</h2>
+            <h2 id="formTitle">Add New Sale Entry</h2>
             <div class="form-grid">
                 <input type="text" id="entryName" placeholder="Name">
                 <input type="text" id="entryProduct" placeholder="Product">
-                <input type="number" id="entryTotalAmount" placeholder="Total Amount" step="0.01">
-                <input type="number" id="entryAdvanceAmount" placeholder="Advance Amount" step="0.01">
+                <input type="number" id="entrySaleAmount" placeholder="Sale Amount" step="0.01">
                 <input type="number" id="entryAmountReceived" placeholder="Amount Received" step="0.01">
+                <input type="number" id="entryAdvanceAmount" placeholder="Advance Amount" step="0.01">
             </div>
             <div class="button-group">
                 <button class="btn-add" id="addBtn" onclick="addEntry()">Add</button>
@@ -354,7 +360,7 @@
         </div>
 
         <!-- Entries List -->
-        <h2>Your Entries <span id="entryCount">(0)</span></h2>
+        <h2>Sales Records <span id="entryCount">(0)</span></h2>
         <div class="investment-list" id="entryList"></div>
     </div>
 
@@ -365,7 +371,7 @@
 
         // Load config
         function loadConfig() {
-            scriptUrl = 'https://script.google.com/macros/s/AKfycbxpZc_lE4A4_yMjStGr7pW8IzWt3zUp1WluuBWP9R0Glyt2pm_oF24oVJQM0WdagJWn/exec';
+            scriptUrl = localStorage.getItem('scriptUrl');
             updateStatus();
         }
 
@@ -410,9 +416,9 @@
                     body: JSON.stringify({
                         name: entry.name,
                         product: entry.product,
-                        totalAmount: entry.totalAmount,
-                        advanceAmount: entry.advanceAmount,
-                        amountReceived: entry.amountReceived
+                        saleAmount: entry.saleAmount,
+                        amountReceived: entry.amountReceived,
+                        advanceAmount: entry.advanceAmount
                     })
                 });
 
@@ -434,22 +440,17 @@
         async function addEntry() {
             const name = document.getElementById('entryName').value.trim();
             const product = document.getElementById('entryProduct').value.trim();
-            const totalAmount = parseFloat(document.getElementById('entryTotalAmount').value);
-            const advanceAmount = parseFloat(document.getElementById('entryAdvanceAmount').value) || 0;
+            const saleAmount = parseFloat(document.getElementById('entrySaleAmount').value);
             const amountReceived = parseFloat(document.getElementById('entryAmountReceived').value);
+            const advanceAmount = parseFloat(document.getElementById('entryAdvanceAmount').value) || 0;
 
-            if (!name || !product || isNaN(totalAmount) || isNaN(amountReceived)) {
-                alert('Please fill in all required fields');
+            if (!name || !product || isNaN(saleAmount) || isNaN(amountReceived)) {
+                alert('Please fill in all required fields (Name, Product, Sale Amount, Amount Received)');
                 return;
             }
 
-            if (amountReceived > totalAmount) {
-                alert('Amount Received cannot be greater than Total Amount');
-                return;
-            }
-
-            if (advanceAmount > totalAmount) {
-                alert('Advance Amount cannot be greater than Total Amount');
+            if (amountReceived > saleAmount) {
+                alert('Amount Received cannot be greater than Sale Amount');
                 return;
             }
 
@@ -463,9 +464,9 @@
                 id: editingId || Date.now(),
                 name,
                 product,
-                totalAmount,
-                advanceAmount,
+                saleAmount,
                 amountReceived,
+                advanceAmount,
                 timestamp: new Date().toISOString()
             };
 
@@ -486,10 +487,10 @@
                 // Clear form
                 document.getElementById('entryName').value = '';
                 document.getElementById('entryProduct').value = '';
-                document.getElementById('entryTotalAmount').value = '';
-                document.getElementById('entryAdvanceAmount').value = '';
+                document.getElementById('entrySaleAmount').value = '';
                 document.getElementById('entryAmountReceived').value = '';
-                document.getElementById('formTitle').textContent = 'Add New Entry';
+                document.getElementById('entryAdvanceAmount').value = '';
+                document.getElementById('formTitle').textContent = 'Add New Sale Entry';
                 document.getElementById('cancelBtn').style.display = 'none';
                 document.getElementById('addBtn').textContent = 'Add';
 
@@ -506,10 +507,10 @@
             if (entry) {
                 document.getElementById('entryName').value = entry.name;
                 document.getElementById('entryProduct').value = entry.product;
-                document.getElementById('entryTotalAmount').value = entry.totalAmount;
-                document.getElementById('entryAdvanceAmount').value = entry.advanceAmount || 0;
+                document.getElementById('entrySaleAmount').value = entry.saleAmount;
                 document.getElementById('entryAmountReceived').value = entry.amountReceived;
-                document.getElementById('formTitle').textContent = 'Edit Entry (local only)';
+                document.getElementById('entryAdvanceAmount').value = entry.advanceAmount;
+                document.getElementById('formTitle').textContent = 'Edit Sale Entry (local only)';
                 document.getElementById('addBtn').textContent = 'Update';
                 document.getElementById('cancelBtn').style.display = 'inline-block';
                 editingId = id;
@@ -530,10 +531,10 @@
         function cancelEdit() {
             document.getElementById('entryName').value = '';
             document.getElementById('entryProduct').value = '';
-            document.getElementById('entryTotalAmount').value = '';
-            document.getElementById('entryAdvanceAmount').value = '';
+            document.getElementById('entrySaleAmount').value = '';
             document.getElementById('entryAmountReceived').value = '';
-            document.getElementById('formTitle').textContent = 'Add New Entry';
+            document.getElementById('entryAdvanceAmount').value = '';
+            document.getElementById('formTitle').textContent = 'Add New Sale Entry';
             document.getElementById('addBtn').textContent = 'Add';
             document.getElementById('cancelBtn').style.display = 'none';
             editingId = null;
@@ -542,24 +543,22 @@
         // Render everything
         function render() {
             // Calculate totals
-            const totalAmount = entries.reduce((sum, e) => sum + e.totalAmount, 0);
-            const totalAdvance = entries.reduce((sum, e) => sum + (e.advanceAmount || 0), 0);
+            const totalSales = entries.reduce((sum, e) => sum + e.saleAmount, 0);
             const totalReceived = entries.reduce((sum, e) => sum + e.amountReceived, 0);
-            const totalPending = totalAmount - totalReceived;
-            const percentReceived = totalAmount > 0 ? (totalReceived / totalAmount) * 100 : 0;
+            const totalAdvance = entries.reduce((sum, e) => sum + e.advanceAmount, 0);
+            const totalPending = totalSales - totalReceived;
 
             // Update cards
-            document.getElementById('totalAmountDisplay').textContent = '₹ ' + Math.round(totalAmount).toLocaleString();
-            document.getElementById('totalAdvanceDisplay').textContent = '₹ ' + Math.round(totalAdvance).toLocaleString();
+            document.getElementById('totalSalesDisplay').textContent = '₹ ' + Math.round(totalSales).toLocaleString();
             document.getElementById('totalReceivedDisplay').textContent = '₹ ' + Math.round(totalReceived).toLocaleString();
             
             const pendingEl = document.getElementById('totalPendingDisplay');
             pendingEl.textContent = '₹ ' + Math.round(totalPending).toLocaleString();
             pendingEl.className = 'card-value ' + (totalPending === 0 ? 'positive' : 'negative');
 
-            const percentEl = document.getElementById('percentReceivedDisplay');
-            percentEl.textContent = percentReceived.toFixed(1) + '%';
-            percentEl.className = 'card-value ' + (percentReceived === 100 ? 'positive' : 'negative');
+            const advanceEl = document.getElementById('totalAdvanceDisplay');
+            advanceEl.textContent = '₹ ' + Math.round(totalAdvance).toLocaleString();
+            advanceEl.className = 'card-value positive';
 
             // Update count
             document.getElementById('entryCount').textContent = `(${entries.length})`;
@@ -567,15 +566,14 @@
             // Render list
             const list = document.getElementById('entryList');
             if (entries.length === 0) {
-                list.innerHTML = '<div class="empty">No entries yet. Add one above! 👆</div>';
+                list.innerHTML = '<div class="empty">No sales records yet. Add one above! 👆</div>';
                 return;
             }
 
             list.innerHTML = entries.map(entry => {
-                const pending = entry.totalAmount - entry.amountReceived;
-                const percent = (entry.amountReceived / entry.totalAmount) * 100;
+                const pending = entry.saleAmount - entry.amountReceived;
+                const percent = (entry.amountReceived / entry.saleAmount) * 100;
                 const date = new Date(entry.timestamp).toLocaleDateString();
-                const advanceAmount = entry.advanceAmount || 0;
 
                 return `
                     <div class="investment-item">
@@ -587,21 +585,23 @@
                                     <div class="detail-value">${entry.product}</div>
                                 </div>
                                 <div class="detail-row">
-                                    <div class="detail-label">Total Amount</div>
-                                    <div class="detail-value">₹ ${Math.round(entry.totalAmount).toLocaleString()}</div>
-                                </div>
-                                <div class="detail-row">
-                                    <div class="detail-label">Advance Amount</div>
-                                    <div class="detail-value">₹ ${Math.round(advanceAmount).toLocaleString()}</div>
+                                    <div class="detail-label">Sale Amount</div>
+                                    <div class="detail-value">₹ ${Math.round(entry.saleAmount).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
                                     <div class="detail-label">Amount Received</div>
                                     <div class="detail-value">₹ ${Math.round(entry.amountReceived).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-row">
-                                    <div class="detail-label">Amount Pending</div>
+                                    <div class="detail-label">Pending</div>
                                     <div class="detail-value ${pending === 0 ? 'positive' : 'negative'}">
                                         ${pending === 0 ? '✓ Complete' : '₹ ' + Math.round(pending).toLocaleString()}
+                                    </div>
+                                </div>
+                                <div class="detail-row">
+                                    <div class="detail-label">Advance Amount</div>
+                                    <div class="detail-value" style="color: #0ca30c; font-weight: 600;">
+                                        ${entry.advanceAmount > 0 ? '₹ ' + Math.round(entry.advanceAmount).toLocaleString() : '₹ 0'}
                                     </div>
                                 </div>
                                 <div class="detail-row">
@@ -609,7 +609,7 @@
                                     <div class="detail-value">${percent.toFixed(1)}%</div>
                                 </div>
                                 <div class="detail-row">
-                                    <div class="detail-label">Date Added</div>
+                                    <div class="detail-label">Date</div>
                                     <div class="detail-value">${date}</div>
                                 </div>
                             </div>
